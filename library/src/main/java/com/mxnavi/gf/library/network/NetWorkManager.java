@@ -3,7 +3,9 @@ package com.mxnavi.gf.library.network;
 import android.content.Context;
 import android.content.IntentFilter;
 
+import com.mxnavi.gf.library.network.type.NetType;
 import com.mxnavi.gf.library.network.utils.NetConstant;
+import com.mxnavi.gf.library.network.utils.NetWorkUtil;
 
 /**
  * 描述 ： 网络状态管理类
@@ -17,7 +19,12 @@ public class NetWorkManager {
 
     private NetWorkReceiver netWorkReceiver;
 
+    private Context context;
+
     public NetWorkManager(Context context) {
+
+        this.context = context;
+
         netWorkReceiver = new NetWorkReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(NetConstant.ACTION);
@@ -45,6 +52,22 @@ public class NetWorkManager {
      */
     public void unRegisterAllObserver() {
         netWorkReceiver.unRegisterAllObserver();
+    }
+
+    /**
+     * 是否有网络
+     * @return
+     */
+    public boolean hasNetWork() {
+        return NetWorkUtil.isNetWorkAvailable(context);
+    }
+
+    /**
+     * 获取网络类型
+     * @return
+     */
+    public NetType getNetType() {
+        return NetWorkUtil.getNetType(context);
     }
 
 }

@@ -2,6 +2,7 @@ package com.mxnavi.gf.library.singleton;
 
 import android.content.Context;
 
+import com.mxnavi.gf.library.fastdao.factory.FastFactoty;
 import com.mxnavi.gf.library.network.NetWorkManager;
 
 import java.util.HashMap;
@@ -28,6 +29,13 @@ final class ServiceRegistry {
             @Override
             public NetWorkManager createService(Context context) {
                 return new NetWorkManager(context);
+            }
+        });
+
+        registerService(FastFactoty.class.getName(), new ServiceFetcher<FastFactoty>() {
+            @Override
+            public FastFactoty createService(Context context) {
+                return new FastFactoty();
             }
         });
     }
