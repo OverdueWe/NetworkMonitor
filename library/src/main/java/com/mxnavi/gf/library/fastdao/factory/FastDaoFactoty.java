@@ -15,11 +15,11 @@ import java.io.File;
  * @author Mark
  * @date 2019.04.15
  */
-public class FastFactoty {
+public class FastDaoFactoty {
 
     private SQLiteDatabase sqLiteDatabase;
 
-    public FastFactoty() {
+    public FastDaoFactoty() {
         sqLiteDatabase = SQLiteDatabase.openOrCreateDatabase(
                 Environment.getExternalStorageDirectory().getAbsolutePath()
                         + File.separator + FastDaoConstant.FASTDAO_PATH, null);
@@ -28,12 +28,12 @@ public class FastFactoty {
     /**
      * 根据数据类型创建对应的数据库
      *
-     * @param entity
+     * @param entityClass
      * @param <T>
      * @return
      */
-    public <T> IBaseDao createDao(T entity) {
-        if (entity == null) {
+    public <T> IBaseDao createDao(Class<T> entityClass) {
+        if (entityClass == null) {
             throw new IllegalArgumentException("Entity must not be null");
         }
 
@@ -43,7 +43,7 @@ public class FastFactoty {
 
         try {
             BaseDaoImpl baseDao = BaseDaoImpl.class.newInstance();
-            baseDao.init(entity.getClass(), sqLiteDatabase);
+            baseDao.init(entityClass, sqLiteDatabase);
             return baseDao;
         } catch (IllegalAccessException e) {
             e.printStackTrace();
@@ -51,5 +51,14 @@ public class FastFactoty {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * 关闭数据库
+     */
+    public void close() {
+        if (sqLiteDatabase.isOpen()) {
+            sqLiteDatabase.close();
+        }
     }
 }

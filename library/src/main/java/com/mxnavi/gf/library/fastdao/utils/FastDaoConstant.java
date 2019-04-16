@@ -11,5 +11,5 @@ public class FastDaoConstant {
     /**
      * 数据库路径
      */
-    public static final String FASTDAO_PATH = "test";
+    public static final String FASTDAO_PATH = "test.db";
 }

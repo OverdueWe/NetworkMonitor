@@ -14,7 +14,7 @@ public class UserInfo {
     private String name;
 
     @FastFeild(value = "password")
-    private String password;
+    private int password;
 
     public String getName() {
         return name;
@@ -24,11 +24,11 @@ public class UserInfo {
         this.name = name;
     }
 
-    public String getPassword() {
+    public int getPassword() {
         return password;
     }
 
-    public void setPassword(String password) {
+    public void setPassword(int password) {
         this.password = password;
     }
 }

@@ -13,7 +13,7 @@ public interface IBaseDao<T> {
      * 插入数据
      * @param entity
      */
-    long insert(T entity);
+    Long insert(T entity);
 
     /**
      * 删除数据
