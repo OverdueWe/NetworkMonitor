@@ -12,6 +12,8 @@ import com.mxnavi.gf.library.network.type.NetType;
 import com.mxnavi.gf.library.singleton.SingletonManager;
 import com.mxnavi.gf.networkdemo.bean.UserInfo;
 
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
@@ -20,17 +22,22 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.d(TAG, "time 1 : " + System.currentTimeMillis());
 
-        UserInfo userInfo = new UserInfo();
-        userInfo.setName("guofeng");
-        userInfo.setPassword(14384798);
-
-        Log.d(TAG,"time 1 : " + System.currentTimeMillis());
-        for (int i = 0; i < 100; i++) {
-            IBaseDao baseDao = SingletonManager.getService(FastDaoFactoty.class).createDao(UserInfo.class);
+        UserInfoDao baseDao = SingletonManager.getService(FastDaoFactoty.class)
+                .create(UserInfo.class,UserInfoDao.class);
+        for (int i = 0; i < 10; i++) {
+            UserInfo userInfo = new UserInfo();
+            userInfo.setName("guofeng");
+            userInfo.setPassword(i);
             baseDao.insert(userInfo);
         }
-        Log.d(TAG,"time 2 : " + System.currentTimeMillis());
+
+        List<UserInfo> userInfos = null;
+        userInfos = baseDao.query(null, null);
+        baseDao.delete(null, null);
+        userInfos = baseDao.query(null, null);
+        Log.d(TAG, "time 2 : " + System.currentTimeMillis());
     }
 
     @Override
@@ -47,11 +54,11 @@ public class MainActivity extends AppCompatActivity {
 
     @NetWork(netType = NetType.AUTO)
     public void autoNet(NetType netType) {
-        Log.d(TAG,"autoNet : " + netType.toString());
+        Log.d(TAG, "autoNet : " + netType.toString());
     }
 
     @NetWork(netType = NetType.WIFI)
     public void wifiNet(NetType netType) {
-        Log.d(TAG,"wifiNet : " + netType.toString());
+        Log.d(TAG, "wifiNet : " + netType.toString());
     }
 }

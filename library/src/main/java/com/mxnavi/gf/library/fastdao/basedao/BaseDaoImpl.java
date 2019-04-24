@@ -10,6 +10,7 @@ import com.mxnavi.gf.library.fastdao.annotation.FastFeild;
 import com.mxnavi.gf.library.fastdao.annotation.FastTable;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +54,7 @@ public class BaseDaoImpl<T> implements IBaseDao<T> {
      * @param tClass
      * @param sqLiteDatabase
      */
-    public boolean init(Class<T> tClass, SQLiteDatabase sqLiteDatabase) {
+    public final boolean init(Class<T> tClass, SQLiteDatabase sqLiteDatabase) {
         entityClazz = tClass;
         this.sqLiteDatabase = sqLiteDatabase;
         if (!isInit) {
@@ -71,7 +72,7 @@ public class BaseDaoImpl<T> implements IBaseDao<T> {
     }
 
     @Override
-    public Long insert(T entity) {
+    public final boolean insert(T entity) {
         if (!sqLiteDatabase.isOpen()) {
             throw new IllegalStateException("SQLiteDatabase is closed");
         }
@@ -79,29 +80,38 @@ public class BaseDaoImpl<T> implements IBaseDao<T> {
     }
 
     @Override
-    public boolean delete(T entity) {
+    public final boolean insert(List<T> entities) {
         if (!sqLiteDatabase.isOpen()) {
             throw new IllegalStateException("SQLiteDatabase is closed");
         }
-        return deleteT(entity);
+        for (T entity : entities) {
+            insertT(entity);
+        }
+        return true;
     }
 
     @Override
-    public boolean update(T entity) {
+    public final boolean delete(String whereClause, String[] whereArgs) {
         if (!sqLiteDatabase.isOpen()) {
             throw new IllegalStateException("SQLiteDatabase is closed");
         }
-        //TODO 待实现
-        return false;
+        return deleteT(whereClause, whereArgs);
     }
 
     @Override
-    public List<T> query() {
+    public final boolean update(T entity, String whereClause, String[] whereArgs) {
         if (!sqLiteDatabase.isOpen()) {
             throw new IllegalStateException("SQLiteDatabase is closed");
         }
-        //TODO 待实现
-        return null;
+        return updateT(entity, whereClause, whereArgs);
+    }
+
+    @Override
+    public final List<T> query(String sql, String[] selectionArgs) {
+        if (!sqLiteDatabase.isOpen()) {
+            throw new IllegalStateException("SQLiteDatabase is closed");
+        }
+        return queryT(sql,selectionArgs);
     }
 
     /**
@@ -198,20 +208,21 @@ public class BaseDaoImpl<T> implements IBaseDao<T> {
      * @param <T>
      * @return
      */
-    private <T> long insertT(T entity) {
-        long result = 0L;
+    private <T> boolean insertT(T entity) {
+        boolean success = false;
         ContentValues values = createValues(entity);
         sqLiteDatabase.beginTransaction();
         try {
-            result = sqLiteDatabase.insert(tableName, null, values);
+            sqLiteDatabase.insert(tableName, null, values);
             sqLiteDatabase.setTransactionSuccessful();
+            success = true;
         } catch (Exception e) {
             e.printStackTrace();
             Log.d(TAG, "insertT exception : " + e.toString());
         } finally {
             sqLiteDatabase.endTransaction();
         }
-        return result;
+        return success;
     }
 
     /**
@@ -253,17 +264,120 @@ public class BaseDaoImpl<T> implements IBaseDao<T> {
     }
 
     /**
-     * 删除数据
-     * @param entity
-     * @param <T>
+     * 查询数据
+     *
      * @return
      */
-    private <T> boolean deleteT(T entity) {
-        StringBuilder sqlBuilder = new StringBuilder("DELETE FROM ");
-        sqlBuilder.append(tableName);
-        sqLiteDatabase.execSQL(sqlBuilder.toString());
-        return false;
+    private List<T> queryT(String sql, String[] selectionArgs) {
+        Cursor cursor = null;
+        List<T> entities = null;
+        sqLiteDatabase.beginTransaction();
+        try {
+            if (TextUtils.isEmpty(sql)) {
+                cursor = sqLiteDatabase.rawQuery("SELECT * FROM " + tableName, null);
+            } else {
+                cursor = sqLiteDatabase.rawQuery(sql, selectionArgs);
+            }
+            entities = createEntities(cursor);
+            sqLiteDatabase.setTransactionSuccessful();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.d(TAG, "queryT Exception : " + e.toString());
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            sqLiteDatabase.endTransaction();
+        }
+        return entities;
     }
 
+
+    /**
+     * 生成数据列表
+     *
+     * @param cursor
+     * @return
+     */
+    public List<T> createEntities(Cursor cursor) throws Exception {
+        int count = cursor.getCount();
+        List<T> entities = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            cursor.moveToNext();
+            T entity = entityClazz.newInstance();
+            String[] columns = cursor.getColumnNames();
+            for (String column : columns) {
+                Field field = memberMap.get(column);
+                if (field != null) {
+                    field.setAccessible(true);
+                    Class<?> clazz = field.getType();
+                    //字符串类型
+                    if (clazz == String.class) {
+                        String member = cursor.getString(cursor.getColumnIndex(column));
+                        field.set(entity, member);
+                    }
+                    //Integer类型
+                    if (clazz == int.class) {
+                        int member = cursor.getInt(cursor.getColumnIndex(column));
+                        field.set(entity, member);
+                    }
+                    //Long类型
+                    if (clazz == long.class) {
+                        long member = cursor.getLong(cursor.getColumnIndex(column));
+                        field.set(entity, member);
+                    }
+                    //byte[]类型
+                    if (clazz == byte[].class) {
+                        byte[] member = cursor.getBlob(cursor.getColumnIndex(column));
+                        field.set(entity, member);
+                    }
+                }
+            }
+            entities.add(entity);
+        }
+        return entities;
+    }
+
+    /**
+     * 删除数据
+     */
+    private boolean deleteT(String whereClause, String[] whereArgs) {
+        boolean success = false;
+        sqLiteDatabase.beginTransaction();
+        try {
+            sqLiteDatabase.delete(tableName, whereClause, whereArgs);
+            sqLiteDatabase.setTransactionSuccessful();
+            success = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.d(TAG, "deleteT Exception : " + e.toString());
+        } finally {
+            sqLiteDatabase.endTransaction();
+        }
+        return success;
+    }
+
+    /**
+     * 更新数据
+     *
+     * @param entity
+     * @return
+     */
+    private boolean updateT(T entity, String whereClause, String[] whereArgs) {
+        boolean success = false;
+        ContentValues contentValues = createValues(entity);
+        sqLiteDatabase.beginTransaction();
+        try {
+            sqLiteDatabase.update(tableName, contentValues, whereClause, whereArgs);
+            sqLiteDatabase.setTransactionSuccessful();
+            success = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.d(TAG, "updateT exception : " + e.toString());
+        } finally {
+            sqLiteDatabase.endTransaction();
+        }
+        return success;
+    }
 
 }
