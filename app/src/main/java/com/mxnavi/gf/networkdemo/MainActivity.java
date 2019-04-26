@@ -10,8 +10,10 @@ import com.mxnavi.gf.library.network.NetWorkManager;
 import com.mxnavi.gf.library.network.annotation.NetWork;
 import com.mxnavi.gf.library.network.type.NetType;
 import com.mxnavi.gf.library.singleton.SingletonManager;
+import com.mxnavi.gf.networkdemo.bean.Company;
 import com.mxnavi.gf.networkdemo.bean.UserInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -26,17 +28,28 @@ public class MainActivity extends AppCompatActivity {
 
         UserInfoDao baseDao = SingletonManager.getService(FastDaoFactoty.class)
                 .create(UserInfo.class,UserInfoDao.class);
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 100; i++) {
             UserInfo userInfo = new UserInfo();
             userInfo.setName("guofeng");
             userInfo.setPassword(i);
+
+            Company company = new Company();
+            company.setLocation("辽宁沈阳");
+            company.setTelePhone(123475499);
+
+//            userInfo.setCompany(company);
+
+            List<Company> companies = new ArrayList<>();
+            companies.add(company);
+            userInfo.setCompanyList(companies);
+
             baseDao.insert(userInfo);
         }
 
         List<UserInfo> userInfos = null;
-        userInfos = baseDao.query(null, null);
-        baseDao.delete(null, null);
-        userInfos = baseDao.query(null, null);
+        userInfos = baseDao.queryUsers();
+//        baseDao.delete(null, null);
+//        userInfos = baseDao.queryUsers();
         Log.d(TAG, "time 2 : " + System.currentTimeMillis());
     }
 

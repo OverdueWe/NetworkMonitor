@@ -7,11 +7,11 @@ import java.util.List;
 
 public class UserInfoDao extends BaseDaoImpl {
 
-    public List<UserInfo> query() {
+    public List<UserInfo> queryUsers() {
         return super.query(null, null);
     }
 
-    public boolean delete() {
+    public boolean deleteUsers() {
         return super.delete(null, null);
     }
 }

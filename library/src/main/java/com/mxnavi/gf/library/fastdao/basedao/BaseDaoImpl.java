@@ -8,6 +8,7 @@ import android.util.Log;
 
 import com.mxnavi.gf.library.fastdao.annotation.FastFeild;
 import com.mxnavi.gf.library.fastdao.annotation.FastTable;
+import com.mxnavi.gf.library.fastdao.utils.Serializer;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -111,7 +112,7 @@ public class BaseDaoImpl<T> implements IBaseDao<T> {
         if (!sqLiteDatabase.isOpen()) {
             throw new IllegalStateException("SQLiteDatabase is closed");
         }
-        return queryT(sql,selectionArgs);
+        return queryT(sql, selectionArgs);
     }
 
     /**
@@ -133,25 +134,19 @@ public class BaseDaoImpl<T> implements IBaseDao<T> {
             Field[] fields = entityClazz.getDeclaredFields();
             for (Field field : fields) {
                 Class<?> clazz = field.getType();
-                //字符串类型
+                sqlBuilder.append(field.getAnnotation(FastFeild.class).value());
                 if (clazz == String.class) {
-                    sqlBuilder.append(field.getAnnotation(FastFeild.class).value());
+                    //字符串类型
                     sqlBuilder.append(" text,");
-                }
-                //Integer类型
-                if (clazz == int.class) {
-                    sqlBuilder.append(field.getAnnotation(FastFeild.class).value());
+                } else if (clazz == int.class) {
+                    //Integer类型
                     sqlBuilder.append(" integer,");
-                }
-                //Long类型
-                if (clazz == long.class) {
-                    sqlBuilder.append(field.getAnnotation(FastFeild.class).value());
+                } else if (clazz == long.class) {
+                    //Long类型
                     sqlBuilder.append(" long,");
-                }
-                //byte[]类型
-                if (clazz == byte[].class) {
-                    sqlBuilder.append(field.getAnnotation(FastFeild.class).value());
-                    sqlBuilder.append(" text,");
+                } else {
+                    //byte[]类型 及 其他自定义Bean
+                    sqlBuilder.append(" blob,");
                 }
             }
             sqlBuilder.append(")");
@@ -239,21 +234,20 @@ public class BaseDaoImpl<T> implements IBaseDao<T> {
                 field.setAccessible(true);
                 Object o = field.get(entity);
                 Class<?> clazz = field.getType();
-                //字符串类型
                 if (clazz == String.class) {
+                    //字符串类型
                     values.put(entry.getKey(), (String) o);
-                }
-                //Integer类型
-                if (clazz == int.class) {
+                } else if (clazz == int.class) {
+                    //Integer类型
                     values.put(entry.getKey(), (Integer) o);
-                }
-                //Long类型
-                if (clazz == long.class) {
+                } else if (clazz == long.class) {
+                    //Long类型
                     values.put(entry.getKey(), (Long) o);
-                }
-                //byte[]类型
-                if (clazz == byte[].class) {
+                } else if (clazz == byte[].class) {
+                    //byte[]类型
                     values.put(entry.getKey(), (byte[]) o);
+                } else {
+                    values.put(entry.getKey(), Serializer.toJson(o).getBytes());
                 }
             }
         } catch (Exception e) {
@@ -311,25 +305,20 @@ public class BaseDaoImpl<T> implements IBaseDao<T> {
                 if (field != null) {
                     field.setAccessible(true);
                     Class<?> clazz = field.getType();
-                    //字符串类型
                     if (clazz == String.class) {
-                        String member = cursor.getString(cursor.getColumnIndex(column));
-                        field.set(entity, member);
-                    }
-                    //Integer类型
-                    if (clazz == int.class) {
-                        int member = cursor.getInt(cursor.getColumnIndex(column));
-                        field.set(entity, member);
-                    }
-                    //Long类型
-                    if (clazz == long.class) {
-                        long member = cursor.getLong(cursor.getColumnIndex(column));
-                        field.set(entity, member);
-                    }
-                    //byte[]类型
-                    if (clazz == byte[].class) {
-                        byte[] member = cursor.getBlob(cursor.getColumnIndex(column));
-                        field.set(entity, member);
+                        //字符串类型
+                        field.set(entity, cursor.getString(cursor.getColumnIndex(column)));
+                    } else if (clazz == int.class) {
+                        //Integer类型
+                        field.set(entity, cursor.getInt(cursor.getColumnIndex(column)));
+                    } else if (clazz == long.class) {
+                        //Long类型
+                        field.set(entity, cursor.getLong(cursor.getColumnIndex(column)));
+                    } else if (clazz == byte[].class) {
+                        //byte[]类型
+                        field.set(entity, cursor.getBlob(cursor.getColumnIndex(column)));
+                    } else {
+                        field.set(entity,Serializer.get(new String(cursor.getBlob(cursor.getColumnIndex(column))),clazz));
                     }
                 }
             }
